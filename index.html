@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Vault</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f101c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ SETUP (first run: create master password) ============ -->
+  <div class="screen" id="screen-setup">
+    <div class="topbar"><h1>Buat Vault</h1></div>
+    <p class="hint" style="margin-bottom:18px;">Buat password utama. Password ini TIDAK disimpan di mana pun dan tidak bisa direset kalau lupa — jadi pastikan kamu ingat.</p>
+    <div class="field-group">
+      <label>Password Utama (min. 8 karakter)</label>
+      <input type="password" id="setup-pass1" autocomplete="new-password" placeholder="••••••••">
+    </div>
+    <div class="field-group">
+      <label>Ulangi Password Utama</label>
+      <input type="password" id="setup-pass2" autocomplete="new-password" placeholder="••••••••">
+    </div>
+    <div class="error-text" id="setup-error"></div>
+    <button class="btn-primary" id="setup-submit">Buat Vault</button>
+  </div>
+
+  <!-- ============ UNLOCK ============ -->
+  <div class="screen" id="screen-unlock">
+    <div class="lock-icon">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M6 10V8a6 6 0 1112 0v2M5 10h14a1 1 0 011 1v9a1 1 0 01-1 1H5a1 1 0 01-1-1v-9a1 1 0 011-1z" stroke="#6c63ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2 class="unlock-title">Vault</h2>
+    <p class="unlock-sub">Terenkripsi & aman. Masukkan password utama untuk membuka.</p>
+    <input type="password" id="unlock-input" style="position:absolute; opacity:0; pointer-events:none;">
+    <div class="pin-dots" id="pin-dots"></div>
+    <div class="keypad" id="keypad"></div>
+    <button class="btn-primary" id="unlock-submit-btn" style="max-width:280px; margin-top:18px;">Buka Vault</button>
+    <div class="error-text" id="unlock-error"></div>
+    <div class="unlock-footer">
+      <span id="use-keyboard-toggle">Pakai keyboard</span>
+      <span id="reset-vault-link">Reset Vault</span>
+    </div>
+  </div>
+
+  <!-- ============ VAULT LIST ============ -->
+  <div class="screen" id="screen-vault">
+    <div class="topbar">
+      <h1>Vault</h1>
+      <button class="icon-btn" id="lock-now-btn">🔒</button>
+    </div>
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" id="search-input" placeholder="Cari di vault kamu">
+    </div>
+    <div class="score-card">
+      <div>
+        <div class="label">Security Score</div>
+        <div class="value" id="score-value">—/100</div>
+      </div>
+      <div class="score-ring" id="score-ring" style="--pct:0;"></div>
+    </div>
+    <div class="section-label"><span id="list-heading">Semua Item</span></div>
+    <div class="entry-list" id="entry-list"></div>
+    <button class="fab" id="add-entry-btn">+</button>
+    <div class="bottom-nav">
+      <button class="nav-item active" data-tab="vault"><span>🔐</span>Vault</button>
+      <button class="nav-item" data-tab="security"><span>🛡️</span>Security</button>
+      <button class="nav-item" data-tab="generator"><span>🎲</span>Generator</button>
+      <button class="nav-item" data-tab="settings"><span>⚙️</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ SECURITY TAB ============ -->
+  <div class="screen" id="screen-security">
+    <div class="topbar"><h1>Security</h1></div>
+    <div class="score-card">
+      <div>
+        <div class="label">Overall Score</div>
+        <div class="value" id="sec-score-value">—/100</div>
+      </div>
+      <div class="score-ring" id="sec-score-ring" style="--pct:0;"></div>
+    </div>
+    <div class="section-label"><span>Perlu Perhatian</span></div>
+    <div class="entry-list" id="weak-list"></div>
+    <div class="bottom-nav">
+      <button class="nav-item" data-tab="vault"><span>🔐</span>Vault</button>
+      <button class="nav-item active" data-tab="security"><span>🛡️</span>Security</button>
+      <button class="nav-item" data-tab="generator"><span>🎲</span>Generator</button>
+      <button class="nav-item" data-tab="settings"><span>⚙️</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ GENERATOR TAB ============ -->
+  <div class="screen" id="screen-generator">
+    <div class="topbar"><h1>Generator</h1></div>
+    <div class="gen-output" id="gen-output">••••••••••••</div>
+    <button class="btn-secondary" id="gen-copy-btn">Salin Password</button>
+    <div style="margin-top:20px;">
+      <div class="gen-row">
+        <span>Panjang: <b id="gen-length-label">16</b></span>
+        <input type="range" class="slider" id="gen-length" min="6" max="32" value="16">
+      </div>
+      <div class="gen-row"><span>Huruf Besar (A-Z)</span><div class="toggle on" data-opt="upper"><div class="knob"></div></div></div>
+      <div class="gen-row"><span>Huruf Kecil (a-z)</span><div class="toggle on" data-opt="lower"><div class="knob"></div></div></div>
+      <div class="gen-row"><span>Angka (0-9)</span><div class="toggle on" data-opt="numbers"><div class="knob"></div></div></div>
+      <div class="gen-row"><span>Simbol (!@#$)</span><div class="toggle on" data-opt="symbols"><div class="knob"></div></div></div>
+    </div>
+    <button class="btn-primary" id="gen-regenerate-btn" style="margin-top:20px;">Buat Ulang</button>
+    <div class="bottom-nav">
+      <button class="nav-item" data-tab="vault"><span>🔐</span>Vault</button>
+      <button class="nav-item" data-tab="security"><span>🛡️</span>Security</button>
+      <button class="nav-item active" data-tab="generator"><span>🎲</span>Generator</button>
+      <button class="nav-item" data-tab="settings"><span>⚙️</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS TAB ============ -->
+  <div class="screen" id="screen-settings">
+    <div class="topbar"><h1>Settings</h1></div>
+    <div class="settings-group">
+      <div class="settings-item" id="change-pass-item"><span>Ganti Password Utama</span><span class="chev">›</span></div>
+      <div class="settings-item" id="export-item"><span>Export Backup Terenkripsi</span><span class="chev">›</span></div>
+      <div class="settings-item" id="import-item"><span>Import Backup</span><span class="chev">›</span></div>
+      <input type="file" id="import-file-input" accept=".json" style="display:none;">
+    </div>
+    <div class="settings-group">
+      <button class="btn-danger" id="reset-all-btn">Hapus Semua Data Vault</button>
+    </div>
+    <div class="bottom-nav">
+      <button class="nav-item" data-tab="vault"><span>🔐</span>Vault</button>
+      <button class="nav-item" data-tab="security"><span>🛡️</span>Security</button>
+      <button class="nav-item" data-tab="generator"><span>🎲</span>Generator</button>
+      <button class="nav-item active" data-tab="settings"><span>⚙️</span>Settings</button>
+    </div>
+  </div>
+
+  <!-- ============ ENTRY DETAIL ============ -->
+  <div class="screen" id="screen-detail">
+    <div class="topbar">
+      <div class="back-btn" id="detail-back-btn">‹ Vault</div>
+      <button class="icon-btn" id="detail-edit-btn">Edit</button>
+    </div>
+    <div class="detail-hero">
+      <div class="detail-icon" id="detail-icon">G</div>
+      <div class="detail-name" id="detail-title">—</div>
+      <div class="badge-row"><span class="badge success" id="detail-strength-badge">Strong</span></div>
+    </div>
+    <div class="detail-card">
+      <div class="label">Description</div>
+      <div class="detail-value" id="detail-notes">—</div>
+    </div>
+    <div class="detail-card">
+      <div class="label">Username / Email</div>
+      <div class="detail-row">
+        <div class="detail-value" id="detail-username">—</div>
+        <div class="detail-actions"><button data-copy="username">📋</button></div>
+      </div>
+    </div>
+    <div class="detail-card">
+      <div class="label">Password</div>
+      <div class="detail-row">
+        <div class="detail-value masked" id="detail-password">••••••••</div>
+        <div class="detail-actions">
+          <button id="detail-reveal-btn">👁️</button>
+          <button data-copy="password">📋</button>
+        </div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="detail-card"><div class="label">Last Modified</div><div class="detail-value" id="detail-modified" style="font-size:13px;">—</div></div>
+      <div class="detail-card"><div class="label">Type</div><div class="detail-value" id="detail-type" style="font-size:13px;">Web Login</div></div>
+    </div>
+    <button class="btn-secondary" id="detail-open-btn">🌐 Buka Situs</button>
+    <button class="btn-danger" id="detail-delete-btn" style="margin-top:10px;">🗑️ Hapus Entry</button>
+    <div class="copied-toast" id="copied-toast">Disalin!</div>
+  </div>
+
+  <!-- ============ ADD / EDIT ENTRY ============ -->
+  <div class="screen" id="screen-edit">
+    <div class="topbar">
+      <div class="back-btn" id="edit-cancel-btn">Batal</div>
+      <h1 id="edit-title" style="font-size:17px;">Entry Baru</h1>
+      <button class="icon-btn" id="edit-save-btn">Simpan</button>
+    </div>
+    <div class="field-group"><label>Nama</label><input type="text" id="edit-name" placeholder="Contoh: Gmail"></div>
+    <div class="field-group"><label>Username / Email</label><input type="text" id="edit-username" placeholder="nama@email.com"></div>
+    <div class="field-group">
+      <label>Password</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="edit-password" placeholder="Password" style="flex:1;">
+        <button class="btn-secondary" id="edit-gen-btn" style="width:auto; padding:0 16px; margin-top:0;">🎲</button>
+      </div>
+    </div>
+    <div class="field-group"><label>URL Website</label><input type="text" id="edit-url" placeholder="https://..."></div>
+    <div class="field-group"><label>Catatan</label><textarea class="notes-input" id="edit-notes" placeholder="Deskripsi singkat (opsional)"></textarea></div>
+  </div>
+
+</div>
+
+<script src="crypto.js"></script>
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
